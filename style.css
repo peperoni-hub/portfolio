@@ -1,3 +1,18 @@
+/* ---------- Colours and fonts ---------- */
+:root {
+  --bg: #fdf8e7;
+  --surface: #fffcf0;
+  --ink: #2d2920;
+  --ink-muted: #73694f;
+  --line: #ece1bb;
+  --yellow: #f7dd7c;
+  --yellow-soft: #fcefbd;
+  --honey: #a77a0c;
+
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+}
+
 *,
 *::before,
 *::after {
@@ -6,5 +21,73 @@
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One calm, narrow column, like a page in a notebook */
+.hero,
+main > section {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+::selection {
+  background: var(--yellow);
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  padding-top: 7rem;
+  padding-bottom: 4rem;
+}
+
+.hero-location {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 0 4px var(--yellow-soft);
+}
+
+.hero-name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(3.25rem, 11vw, 6rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.hero-name em {
+  color: var(--honey);
+}
+
+.hero-line {
+  max-width: 34rem;
+  margin: 1.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 1.15rem;
+}
+
+/* A soft highlighter stroke behind a few words */
+mark {
+  padding: 0 0.15em;
+  color: var(--ink);
+  background: linear-gradient(transparent 55%, var(--yellow) 55%);
 }
