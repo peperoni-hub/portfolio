@@ -1,5 +1,7 @@
 # portfolio
 
+**Zehra Sinanović**, software engineering student from Tuzla.
+
 My personal portfolio website: who I am, what I've built and how to reach me.
 
 **🔗 Live site: [peperoni-hub.github.io/portfolio](https://peperoni-hub.github.io/portfolio/)**
@@ -9,7 +11,7 @@ Built with plain HTML, CSS and JavaScript, in a soft yellow theme.
 ## Sections
 
 - **About**: a short intro about me
-- **Projects**: cards that show a screenshot, with the description sliding up on hover or tap
+- **Projects**: an arrow slider of project cards that show a screenshot, with the description sliding up on hover or tap
 - **Contact**: email and GitHub links
 
 ## Projects
@@ -20,6 +22,10 @@ Built with plain HTML, CSS and JavaScript, in a soft yellow theme.
 - **Calculator**: a simple calculator for the browser ([GitHub](https://github.com/peperoni-hub/practice-calculator))
 - **Lift Together**: a workout tracker for two (preview only)
 
-## Next up
+## How it was built
 
-A project slider, so all my projects fit in one row with arrow buttons.
+Each section was built on its own branch (`about`, `projects`, `contact`, `slider`) and merged into `main`.
+
+## Commit history
+
+![Commit history from git log --oneline](images/commit-history.png)
