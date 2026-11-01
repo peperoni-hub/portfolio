@@ -135,10 +135,73 @@ main > section {
 }
 
 /* ---------- Projects ---------- */
+
+/* Slider: every card sits in one row, the viewport shows --per-view of
+   them and script.js slides the track one card at a time. */
+.slider {
+  position: relative;
+}
+
+.slider-viewport {
+  /* room for the hover lift, shadow and focus ring, without moving the layout */
+  margin: -0.5rem -0.5rem -1.75rem;
+  padding: 0.5rem 0.5rem 1.75rem;
+  overflow: hidden;
+}
+
 .project-grid {
+  --per-view: 3;
+  --gap: 1.25rem;
+  display: flex;
+  gap: var(--gap);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.project-grid > .project-card {
+  flex: 0 0 calc((100% - (var(--per-view) - 1) * var(--gap)) / var(--per-view));
+}
+
+.slider-arrow {
+  position: absolute;
+  top: calc(50% - 1.4rem);
+  z-index: 2;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -12px rgba(120, 90, 10, 0.5);
+  transition: background 0.2s ease, transform 0.2s ease, opacity 0.3s ease, visibility 0.3s;
+}
+
+.slider-arrow:hover {
+  background: var(--yellow);
+  transform: scale(1.06);
+}
+
+.slider-arrow:focus-visible {
+  outline: 2px solid var(--honey);
+  outline-offset: 3px;
+}
+
+.slider-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
+}
+
+.slider-arrow.prev {
+  left: -1.4rem;
+}
+
+.slider-arrow.next {
+  right: -1.4rem;
 }
 
 /* The card shows only the screenshot. The info panel waits just below it,
@@ -231,9 +294,15 @@ main > section {
   color: var(--yellow);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .project-grid {
-    grid-template-columns: 1fr;
+    --per-view: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .project-grid {
+    --per-view: 1;
   }
 }
 
