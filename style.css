@@ -117,11 +117,11 @@ main > section {
   margin: 0 0 1rem;
 }
 
-.fun-line {
+.about-text .fun-line {
   display: inline-block;
-  margin-top: 0.5rem !important;
+  margin-top: 0.5rem;
   padding: 0.6rem 1rem;
-  border-radius: 999px;
+  border-radius: 1.25rem;
   background: var(--yellow-soft);
   font-family: var(--font-serif);
   font-style: italic;
