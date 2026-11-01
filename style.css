@@ -190,10 +190,11 @@ main > section {
   outline-offset: 3px;
 }
 
+/* Nothing more to see that way, so the arrow fades out completely */
 .slider-arrow:disabled {
-  opacity: 0.35;
-  cursor: default;
-  transform: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.8);
 }
 
 .slider-arrow.prev {
