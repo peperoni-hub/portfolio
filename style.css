@@ -91,3 +91,45 @@ mark {
   color: var(--ink);
   background: linear-gradient(transparent 55%, var(--yellow) 55%);
 }
+
+/* ---------- Sections ---------- */
+main > section {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.section-title {
+  margin: 0 0 1.5rem;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 2.25rem;
+  line-height: 1.1;
+}
+
+/* ---------- About ---------- */
+.about-text {
+  max-width: 38rem;
+}
+
+.about-text p {
+  margin: 0 0 1rem;
+}
+
+.fun-line {
+  display: inline-block;
+  margin-top: 0.5rem !important;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--yellow-soft);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.4;
+}
+
+.fun-line::before {
+  content: "✦ ";
+  color: var(--honey);
+}
