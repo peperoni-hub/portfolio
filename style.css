@@ -8,9 +8,27 @@
   --yellow: #f7dd7c;
   --yellow-soft: #fcefbd;
   --honey: #a77a0c;
+  --on-yellow: #2d2920;
+  --mark: var(--yellow);
 
   --font-sans: "Geist", system-ui, sans-serif;
   --font-serif: "Instrument Serif", Georgia, serif;
+}
+
+/* After sunset in the scene, the page below becomes a firefly-lit field.
+   scene.js sets data-sky on <html>. */
+:root[data-sky="night"] {
+  --bg: #0f1712;
+  --surface: #16211a;
+  --ink: #e8ecd8;
+  --ink-muted: #a3b49d;
+  --line: #26372b;
+  --yellow: #ffd65c;
+  --yellow-soft: #26361f;
+  --honey: #ffd65c;
+  --on-yellow: #1a1a10;
+  --mark: rgba(255, 214, 92, 0.35);
+  color-scheme: dark;
 }
 
 *,
@@ -27,10 +45,11 @@ body {
   font-size: 1rem;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.8s ease, color 0.8s ease;
 }
 
 /* One calm, narrow column, like a page in a notebook */
-.hero,
+.hero-text,
 main > section {
   max-width: 56rem;
   margin: 0 auto;
@@ -39,22 +58,36 @@ main > section {
 
 ::selection {
   background: var(--yellow);
+  color: var(--on-yellow);
 }
 
 /* ---------- Hero ---------- */
+/* A full-screen pixel-art scene (scene.js) with the name sitting on the sky.
+   scene.js sets the --hero-* colours to match the light. */
 .hero {
-  padding-top: 7rem;
-  padding-bottom: 4rem;
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  min-height: 34rem;
+  max-height: 68rem;
+  overflow: hidden;
+  background: #86c4f2;
+  color: var(--hero-ink, var(--ink));
+  text-shadow: 0 1px 12px var(--hero-shadow, transparent);
 }
 
-.hero-location {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0 0 1.25rem;
-  color: var(--ink-muted);
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+.scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+.hero-text {
+  position: relative;
+  padding-top: clamp(4rem, 17vh, 10rem);
 }
 
 .dot {
@@ -75,21 +108,142 @@ main > section {
 }
 
 .hero-name em {
-  color: var(--honey);
+  color: var(--hero-accent, var(--honey));
 }
 
 .hero-line {
   max-width: 34rem;
   margin: 1.5rem 0 0;
-  color: var(--ink-muted);
+  color: var(--hero-muted, var(--ink-muted));
   font-size: 1.15rem;
+}
+
+.hero mark {
+  color: inherit;
+  background: linear-gradient(transparent 55%, var(--hero-mark, var(--yellow)) 55%);
+}
+
+/* Live clock and sky menu, sitting on the grass in the bottom corner */
+.sky-control {
+  position: absolute;
+  left: max(1.5rem, env(safe-area-inset-left, 0px));
+  bottom: 1.25rem;
+  z-index: 2;
+  text-shadow: none;
+}
+
+.sky-button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.85rem 0.45rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(24, 30, 18, 0.45);
+  backdrop-filter: blur(8px);
+  color: #fdf8e7;
+  font: 500 0.8rem/1.2 var(--font-sans);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sky-button:hover {
+  background: rgba(24, 30, 18, 0.6);
+}
+
+.sky-button:focus-visible,
+.sky-menu button:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: 2px;
+}
+
+.sky-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.sky-mode {
+  padding-left: 0.55rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(253, 248, 231, 0.75);
+}
+
+.sky-control.is-live .dot {
+  animation: live-pulse 2.4s ease-in-out infinite;
+}
+
+.sky-control:not(.is-live) .dot {
+  background: rgba(253, 248, 231, 0.5);
+  box-shadow: none;
+}
+
+@keyframes live-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(247, 221, 124, 0.2);
+  }
+}
+
+.sky-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.5rem);
+  min-width: 14rem;
+  padding: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 0.9rem;
+  background: rgba(24, 30, 18, 0.75);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.5);
+}
+
+.sky-menu-title {
+  margin: 0.35rem 0.6rem 0.4rem;
+  color: rgba(253, 248, 231, 0.6);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sky-menu button {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: #fdf8e7;
+  font: 0.85rem var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sky-menu button small {
+  color: rgba(253, 248, 231, 0.55);
+  font-size: 0.72rem;
+}
+
+.sky-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sky-menu button[aria-pressed="true"] {
+  background: rgba(247, 221, 124, 0.2);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-control.is-live .dot {
+    animation: none;
+  }
 }
 
 /* A soft highlighter stroke behind a few words */
 mark {
   padding: 0 0.15em;
   color: var(--ink);
-  background: linear-gradient(transparent 55%, var(--yellow) 55%);
+  background: linear-gradient(transparent 55%, var(--mark) 55%);
 }
 
 /* ---------- Sections ---------- */
@@ -182,6 +336,7 @@ main > section {
 
 .slider-arrow:hover {
   background: var(--yellow);
+  color: var(--on-yellow);
   transform: scale(1.06);
 }
 
@@ -284,7 +439,7 @@ main > section {
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   background: var(--yellow);
-  color: var(--ink);
+  color: var(--on-yellow);
   font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
@@ -292,7 +447,7 @@ main > section {
 
 .project-links a:hover {
   background: var(--ink);
-  color: var(--yellow);
+  color: var(--bg);
 }
 
 @media (max-width: 860px) {
