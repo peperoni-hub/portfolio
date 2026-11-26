@@ -30,7 +30,7 @@ body {
 }
 
 /* One calm, narrow column, like a page in a notebook */
-.hero,
+.hero-text,
 main > section {
   max-width: 56rem;
   margin: 0 auto;
@@ -42,9 +42,32 @@ main > section {
 }
 
 /* ---------- Hero ---------- */
+/* A full-screen pixel-art scene (scene.js) with the name sitting on the sky.
+   scene.js sets the --hero-* colours to match the light. */
 .hero {
-  padding-top: 7rem;
-  padding-bottom: 4rem;
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  min-height: 34rem;
+  max-height: 68rem;
+  overflow: hidden;
+  background: #86c4f2;
+  color: var(--hero-ink, var(--ink));
+  text-shadow: 0 1px 12px var(--hero-shadow, transparent);
+}
+
+.scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+.hero-text {
+  position: relative;
+  padding-top: 17vh;
 }
 
 .hero-location {
@@ -52,7 +75,7 @@ main > section {
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 1.25rem;
-  color: var(--ink-muted);
+  color: var(--hero-muted, var(--ink-muted));
   font-size: 0.875rem;
   letter-spacing: 0.02em;
 }
@@ -75,14 +98,19 @@ main > section {
 }
 
 .hero-name em {
-  color: var(--honey);
+  color: var(--hero-accent, var(--honey));
 }
 
 .hero-line {
   max-width: 34rem;
   margin: 1.5rem 0 0;
-  color: var(--ink-muted);
+  color: var(--hero-muted, var(--ink-muted));
   font-size: 1.15rem;
+}
+
+.hero mark {
+  color: inherit;
+  background: linear-gradient(transparent 55%, var(--hero-mark, var(--yellow)) 55%);
 }
 
 /* A soft highlighter stroke behind a few words */
