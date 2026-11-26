@@ -130,7 +130,7 @@
   const WINGS_OPEN = ['aa.aa', 'aAkAa', '.a.a.'];
   const WINGS_SHUT = ['.a.a.', '.aka.', '.....'];
   const BANG = ['k', 'k', 'k', '.', 'k'];
-  const ZED = ['wwww', '..w.', '.w..', 'wwww'];
+  const ZED = ['wwwww', '...w.', '..w..', '.w...', 'wwwww'];
   const HEADS = {
     1: ['.y.', 'yby', '.y.'],
     2: ['.yYy.', 'yybyy', 'YbBbY', 'yybyy', '.yYy.'],
@@ -775,6 +775,65 @@
   function stop() {
     cancelAnimationFrame(frame);
     frame = 0;
+  }
+
+  // ----- Live clock and the Live / Day / Dusk / Night menu -----
+  const control = hero.querySelector('.sky-control');
+  if (control) {
+    const button = control.querySelector('.sky-button');
+    const menu = control.querySelector('.sky-menu');
+    const timeText = control.querySelector('.sky-time');
+    const modeText = control.querySelector('.sky-mode');
+    const choices = [...menu.querySelectorAll('[data-mode]')];
+    const tuzlaTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Sarajevo', hour: '2-digit', minute: '2-digit' });
+
+    const showMode = () => {
+      modeText.textContent = mode[0].toUpperCase() + mode.slice(1);
+      control.classList.toggle('is-live', mode === 'live');
+      for (const choice of choices) choice.setAttribute('aria-pressed', String(choice.dataset.mode === mode));
+    };
+    const showTime = () => {
+      timeText.textContent = tuzlaTime.format(new Date());
+    };
+    const openMenu = (open) => {
+      menu.hidden = !open;
+      button.setAttribute('aria-expanded', String(open));
+    };
+
+    try {
+      const saved = localStorage.getItem('sky-mode');
+      if (saved === 'live' || saved in MODE_ALTITUDE) mode = saved;
+    } catch {
+      // No saved choice (private window or blocked storage): stay on Live
+    }
+    showMode();
+    showTime();
+    setInterval(showTime, 1000);
+
+    button.addEventListener('click', () => openMenu(menu.hidden));
+    menu.addEventListener('click', (event) => {
+      const choice = event.target.closest('[data-mode]');
+      if (!choice) return;
+      mode = choice.dataset.mode;
+      try {
+        localStorage.setItem('sky-mode', mode);
+      } catch {
+        // The choice just won't be remembered next time
+      }
+      showMode();
+      openMenu(false);
+      button.focus();
+      if (reduceMotion) render(clock, 0, true);
+    });
+    document.addEventListener('click', (event) => {
+      if (!control.contains(event.target)) openMenu(false);
+    });
+    control.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        openMenu(false);
+        button.focus();
+      }
+    });
   }
 
   updateLight(0, true);

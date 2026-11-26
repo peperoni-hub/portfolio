@@ -14,9 +14,22 @@
   <header class="hero">
     <canvas class="scene" aria-hidden="true"></canvas>
     <div class="hero-text">
-      <p class="hero-location"><span class="dot"></span>Tuzla, Bosnia and Herzegovina</p>
       <h1 class="hero-name">Zehra <em>Sinanović</em></h1>
-      <p class="hero-line">Software engineering student who builds <mark>calm, colourful</mark> apps for everyday things.</p>
+      <p class="hero-line">Software engineering student from Tuzla who builds <mark>calm, colourful</mark> apps for everyday things.</p>
+    </div>
+    <div class="sky-control is-live">
+      <button class="sky-button" type="button" aria-expanded="false" aria-controls="sky-menu">
+        <span class="dot" aria-hidden="true"></span>
+        <span>Tuzla, <span class="sky-time">--:--</span></span>
+        <span class="sky-mode">Live</span>
+      </button>
+      <div class="sky-menu" id="sky-menu" hidden>
+        <p class="sky-menu-title">Sky over the field</p>
+        <button type="button" data-mode="live" aria-pressed="true">Live <small>the real sun in Tuzla</small></button>
+        <button type="button" data-mode="day" aria-pressed="false">Day</button>
+        <button type="button" data-mode="dusk" aria-pressed="false">Dusk</button>
+        <button type="button" data-mode="night" aria-pressed="false">Night</button>
+      </div>
     </div>
   </header>
 
