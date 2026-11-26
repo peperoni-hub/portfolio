@@ -101,52 +101,6 @@
   }
 
   // ----- Sprites ('.' is see-through, other letters are COLORS keys) -----
-  const LYING = [
-    '................k.....k.',
-    '...............kok...kbk',
-    '...............koowwwbbk',
-    '...............kowwwwwbk',
-    '...kkkkkkkkkkkkkwgwwwgwk',
-    '..kwoooooobbbwwkwwwpwwwk',
-    '..koooowwwbbwwwwkwwwwwk.',
-    '..kwooowwwwwwwwwwkkkkkwk',
-    '..kwwwwwwwwwwwwwwwwwwwwk',
-    '.koooowwwwwwwwwwwwwwwwwk',
-    '.ksssssssssssssswwwkwwwk',
-    '..kkkkkkkkkkkkkkkkkkkkk.',
-  ];
-  const WALK = [
-    '...............k...k..',
-    '..............kok.kbk.',
-    '..............kooowbbk',
-    '..............koowwgwk',
-    '..kkkkkkkkkkkkkwwwwwwp',
-    '.kwoooooobbbwwwwwkkkk.',
-    '.kooooowwbbbwwwwwwk...',
-    '.kwwwwwwwwwwwwwwwwk...',
-    '..kkkkkkkkkkkkkkkk....',
-  ];
-  // Asleep she curls up into a ball, head tucked in, tail wrapped round the front
-  const CURLED = [
-    '........................',
-    '........................',
-    '........................',
-    '...............k....k...',
-    '.....kkkkkkkkkkpkk.kpk..',
-    '...kkoobbbbwwwwwkkkkpk..',
-    '..koooobbbbwwwwkobobk...',
-    '.koooooowwwwwwkbobobok..',
-    '.koooooowwwwwwkooookok..',
-    'koooooowwwwwwwkokkkwwwk.',
-    'koooowwwwwwwwwkowwwwpwk.',
-    '.kOOsssssssssskowwwwwk..',
-    '.kOBBBBBBBBBBBBkwwwwwk..',
-    '..kkobbOOoobbOOoskwkk...',
-    '....kkbOOoobbOOoskk.....',
-    '......kkkkkkkkkkk.......',
-  ];
-  const BLINK = { '17,4': 'k', '21,4': 'k' };
-  const WALK_BLINK = { '19,3': 'k' };
   // Her bowl of warm milk: pink on top, a white cat face underneath
   const BOWL = [
     '.rrrrrrrrrrr.',
@@ -169,15 +123,6 @@
     2: ['.yYy.', 'yybyy', 'YbBbY', 'yybyy', '.yYy.'],
     3: ['..yYy..', '.yyyyy.', 'yYbbbYy', 'yybBbyy', 'yYbbbYy', '.yyyyy.', '..yYy..'],
   };
-  // Legs of the walking cat: far legs are a shade darker
-  const LEGS = [
-    { at: 4, c: 'O', pair: 0 },
-    { at: 14, c: 's', pair: 1 },
-    { at: 6, c: 'o', pair: 1 },
-    { at: 16, c: 'w', pair: 0 },
-  ];
-  const STRIDE = [[-1, 1], [0, 0], [1, -1], [0, 0]];
-
   function sprite(rows, x, y, flip = false, swap = null, lift = 0.6) {
     const w = rows[0].length;
     for (let j = 0; j < rows.length; j++) {
@@ -192,6 +137,8 @@
 
   // ----- The world: sizes, layout and cached layers -----
   // baseY is the ground line the cat lies on, partway down the field
+  // The canvas has FINE x FINE real pixels per scene pixel, so the cat can be drawn in more detail
+  const FINE = 2;
   let W = 0, H = 0, PX = 4, horizon = 0, baseY = 0, homeX = 0, frontRow = 0;
   let stars = [], clouds = [], rows = [], specks = [], fireflies = [], pollen = [];
   let farHills = [], nearHills = [];
@@ -732,61 +679,209 @@
     fly.y += (dy / dist) * stepLen + Math.sin(fly.t * 8) * 0.35;
   }
 
-  function drawTail(x, y, dir, start, bend, sway, t, length = 8) {
-    const points = [];
-    let px = 0, py = 0, a = start;
-    for (let i = 0; i < length; i++) {
-      a += bend + Math.sin(t * 2.1 - i * 0.55) * sway * (i / length);
-      px += Math.cos(a) * 1.15;
-      py += Math.sin(a) * 1.15;
-      points.push([x + Math.round(px * dir), y + Math.round(py)]);
+  // ----- Painting the cat -----
+  // She's drawn at FINE times the scene's detail. Each frame her pose is
+  // painted from simple shapes (ellipses for body and head, rounded sticks
+  // for legs, a chain of dots for the tail) into a grid of colour letters,
+  // then given a thin outline. x points the way she faces; (0, 0) is the
+  // ground under her middle.
+  const GRID_W = 80, GRID_H = 56, GX = 40, GY = 52;
+  const grid = new Array(GRID_W * GRID_H).fill('.');
+  const inGrid = (x, y) => x + GX >= 0 && x + GX < GRID_W && y + GY >= 0 && y + GY < GRID_H;
+  const at = (x, y) => (inGrid(x, y) ? grid[x + GX + (y + GY) * GRID_W] : '.');
+  const plot = (x, y, c) => {
+    if (inGrid(x, y)) grid[x + GX + (y + GY) * GRID_W] = c;
+  };
+
+  // Fill an ellipse. `color` is a letter or (x, y) => letter. With `over`,
+  // it only paints on top of fur that's already there (for patches).
+  function blob(cx, cy, rx, ry, color, over = false) {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
+        if (dx * dx + dy * dy > 1 || (over && at(x, y) === '.')) continue;
+        plot(x, y, typeof color === 'function' ? color(x, y) : color);
+      }
     }
-    ctx.fillStyle = lit(COLORS.k, 0.5);
-    for (const [qx, qy] of points) ctx.fillRect(qx - 1, qy - 1, 4, 4);
-    points.forEach(([qx, qy], i) => {
-      ctx.fillStyle = lit(i < length * 0.6 ? COLORS.o : COLORS.b, 0.5);
-      ctx.fillRect(qx, qy, 2, 2);
-    });
   }
 
-  function drawLegs(x, y, flip, frame) {
-    for (const leg of LEGS) {
-      const off = frame < 0 ? 0 : STRIDE[frame][leg.pair];
-      const lifted = (frame === 1 && leg.pair === 0) || (frame === 3 && leg.pair === 1);
-      const len = lifted ? 2 : 3;
-      const lx = leg.at + off;
-      const px = x + (flip ? WALK[0].length - 2 - lx : lx);
-      ctx.fillStyle = lit(COLORS[leg.c], 0.5);
-      ctx.fillRect(px, y + 9, 2, len - 1);
-      ctx.fillStyle = lit(COLORS.k, 0.5);
-      ctx.fillRect(px, y + 8 + len, 2, 1);
+  // A rounded stick from (x1, y1) to (x2, y2); `color` gets 0 at the top, 1 at the paw
+  function limb(x1, y1, x2, y2, r, color) {
+    const len2 = (x2 - x1) ** 2 + (y2 - y1) ** 2 || 1;
+    for (let y = Math.floor(Math.min(y1, y2) - r); y <= Math.ceil(Math.max(y1, y2) + r); y++) {
+      for (let x = Math.floor(Math.min(x1, x2) - r); x <= Math.ceil(Math.max(x1, x2) + r); x++) {
+        const px = x + 0.5, py = y + 0.5;
+        const t = clamp(((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / len2, 0, 1);
+        if (Math.hypot(px - x1 - t * (x2 - x1), py - y1 - t * (y2 - y1)) <= r) plot(x, y, color(t));
+      }
     }
+  }
+
+  function triangle(ax, ay, bx, by, cx, cy, color) {
+    const side = (x1, y1, x2, y2, x, y) => (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1);
+    for (let y = Math.floor(Math.min(ay, by, cy)); y <= Math.ceil(Math.max(ay, by, cy)); y++) {
+      for (let x = Math.floor(Math.min(ax, bx, cx)); x <= Math.ceil(Math.max(ax, bx, cx)); x++) {
+        const px = x + 0.5, py = y + 0.5;
+        const s1 = side(ax, ay, bx, by, px, py), s2 = side(bx, by, cx, cy, px, py), s3 = side(cx, cy, ax, ay, px, py);
+        if ((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0)) plot(x, y, color);
+      }
+    }
+  }
+
+  // A banded calico tail: a chain of dots that curls and sways
+  function tail(x, y, start, bend, sway, t, count) {
+    let a = start;
+    for (let i = 0; i < count; i++) {
+      a += bend + Math.sin(t * 2.1 - i * 0.45) * sway * (i / count);
+      x += Math.cos(a) * 1.5;
+      y += Math.sin(a) * 1.5;
+      blob(x, y, 1.9, 1.9, i >= count - 2 ? 'b' : Math.floor(i / 2) % 2 ? 'O' : 'o');
+    }
+  }
+
+  function eye(x, y, closed) {
+    if (closed) {
+      plot(x, y + 1, 'k');
+      plot(x + 1, y + 1, 'k');
+      return;
+    }
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) plot(x + dx, y + dy, 'g');
+    plot(x + 1, y, 'x'); // a little shine
+  }
+
+  // Standing or walking, side view. `phase` turns the legs, `stride` is how far they swing.
+  function paintStanding(t, phase, stride, blink) {
+    const legLength = 11;
+    const by = -(legLength + 6) - Math.abs(Math.sin(phase)) * stride * 0.15;
+    const paw = (hx, offset) => [
+      hx + Math.sin(phase + offset) * stride,
+      -Math.max(0, Math.cos(phase + offset)) * stride * 0.55,
+    ];
+    // Diagonal pairs move together: far back + near front, far front + near back
+    const leg = (hx, offset, top, bottom) => {
+      const [px, py] = paw(hx, offset);
+      limb(hx, by + 2, px, py - 2, 2.2, (s) => (s > 0.8 ? bottom : top));
+    };
+    leg(-8, Math.PI, 'O', 's');
+    leg(6, 0, 's', 's');
+    tail(-12, by - 3, Math.PI + 1.25, 0.07, 0.45, t, 12);
+    blob(0, by, 12, 7, 'w');
+    blob(-6, by - 2.5, 7.5, 5, 'o', true);
+    blob(2.5, by - 5, 4.5, 2.5, 'b', true);
+    blob(0, by + 4.5, 9.5, 2.4, 's', true);
+    leg(-5, 0, 'o', 'w');
+    leg(9, Math.PI, 'w', 'w');
+
+    const hx = 12, hy = by - 7;
+    triangle(hx - 6, hy - 4, hx - 1, hy - 6, hx - 5, hy - 11, 'b');
+    triangle(hx, hy - 5, hx + 6, hy - 4, hx + 4, hy - 11, 'o');
+    triangle(hx + 1.5, hy - 5, hx + 4.5, hy - 4.5, hx + 3.6, hy - 8.5, 'p');
+    blob(hx, hy, 7, 6.3, (x, y) => (y < hy - 1 && x < hx + 4 ? 'o' : 'w'));
+    blob(hx - 4, hy - 3, 3, 3.2, 'b', true);
+    eye(hx + 2, hy - 1, blink);
+    plot(hx + 6, hy + 1, 'p');
+  }
+
+  // Lying down like a loaf, head up and facing you, front paws stretched out
+  function paintLying(t, blink, alert) {
+    tail(-15, -3, Math.PI, 0.16, 0.9, t, 11);
+    blob(-1, -6.5, 15, 6.5, 'w');
+    blob(-8, -8.5, 7.5, 5, 'o', true);
+    blob(0, -11.5, 4.5, 2.2, 'b', true);
+    blob(-11, -4, 4.5, 3.5, 'o', true);
+    blob(-2, -1.4, 13, 1.6, 's', true);
+    blob(13, -1.8, 4, 1.9, 'w');
+    blob(18, -1.8, 3.6, 1.9, 'w');
+    plot(15, -2, 's');
+    plot(15, -1, 's');
+
+    const hx = 12, hy = alert ? -15 : -14;
+    triangle(hx - 7, hy - 2, hx - 2, hy - 5.5, hx - 6, hy - 11, 'o');
+    triangle(hx - 5.6, hy - 4, hx - 3, hy - 5.2, hx - 5.2, hy - 8.4, 'p');
+    triangle(hx + 2, hy - 5.5, hx + 7, hy - 2, hx + 6, hy - 11, 'b');
+    blob(hx, hy, 7.5, 6.5, (x, y) => (y < hy - 2 ? 'o' : 'w'));
+    blob(hx + 4.5, hy - 3.5, 3.5, 3, 'b', true);
+    eye(hx - 4, hy - 1, blink);
+    eye(hx + 2, hy - 1, blink);
+    plot(hx - 1, hy + 2, 'p');
+    plot(hx, hy + 2, 'p');
+    plot(hx - 2, hy + 3, 's');
+    plot(hx + 1, hy + 3, 's');
+  }
+
+  // Asleep: curled into a ball, head tucked in, striped tail wrapped round the front
+  function paintCurled(t) {
+    const breath = Math.sin(t * 1.4) * 0.5;
+    blob(-1, -9, 16, 9 + breath, 'w');
+    blob(-9, -11, 8, 6, 'o', true);
+    blob(-1, -16 - breath, 5, 2.6, 'b', true);
+    blob(-13, -5, 4, 3.5, 'o', true);
+    blob(-2, -6, 13, 2.2, 's', true);
+    for (let x = -13; x <= 8; x++) {
+      blob(x, -2.6, 0.8, 2.3, x > 4 ? 's' : Math.floor((x + 13) / 3) % 2 ? 'O' : 'o');
+    }
+
+    const hx = 9, hy = -9;
+    triangle(hx + 1, hy - 5, hx + 7, hy - 3, hx + 6, hy - 10, 'o');
+    triangle(hx + 2.6, hy - 4.6, hx + 5.6, hy - 3.6, hx + 5.2, hy - 7.4, 'p');
+    triangle(hx - 5, hy - 4, hx - 1, hy - 6, hx - 4, hy - 10, 'b');
+    blob(hx, hy, 7, 6.2, (x, y) => (y < hy - 1 ? 'o' : 'w'));
+    for (let x = hx - 3; x <= hx + 1; x += 2) {
+      if (at(x, hy - 4) === 'o') plot(x, hy - 4, 'b');
+      if (at(x, hy - 3) === 'o') plot(x, hy - 3, 'b');
+    }
+    plot(hx - 1, hy + 1, 'k');
+    plot(hx, hy + 2, 'k');
+    plot(hx + 1, hy + 2, 'k');
+    plot(hx + 2, hy + 1, 'k');
+    plot(hx + 5, hy + 2, 'p');
+  }
+
+  // A thin dark line all the way round her
+  function outline() {
+    const edges = [];
+    for (let y = -GY; y < GRID_H - GY; y++) {
+      for (let x = -GX; x < GRID_W - GX; x++) {
+        if (at(x, y) !== '.') continue;
+        if (at(x + 1, y) !== '.' || at(x - 1, y) !== '.' || at(x, y + 1) !== '.' || at(x, y - 1) !== '.') edges.push([x, y]);
+      }
+    }
+    for (const [x, y] of edges) plot(x, y, 'k');
   }
 
   function drawCat(t) {
-    const x = Math.round(cat.x);
-    const top = baseY - 11;
+    grid.fill('.');
+    const lying = cat.state === 'rest' || cat.state === 'alert' || cat.state === 'sleep';
+    if (cat.state === 'sleep') paintCurled(t);
+    else if (lying) paintLying(t, cat.blink > 0, cat.state === 'alert');
+    else {
+      const running = cat.state === 'chase';
+      paintStanding(t, cat.step * 0.9, cat.moving ? (running ? 4.5 : 3) : 0, cat.blink > 0);
+    }
+    outline();
+
+    // Draw the grid at full detail, one colour at a time
+    const ox = Math.round((cat.x + 12) * FINE);
+    const ground = (baseY + 1) * FINE;
+    const hop = cat.hop > 0 ? Math.round(Math.sin(Math.PI * (cat.hop / 0.45)) * 7 * FINE) : 0;
+    const flip = !lying && cat.dir < 0;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
-    ctx.fillRect(x + 2, baseY + 1, 20, 1);
-
-    if (cat.state === 'sleep') {
-      sprite(CURLED, x, baseY - 15);
-      return;
+    ctx.fillRect(ox - 16, ground - 1, 32, 2);
+    const byColor = {};
+    grid.forEach((c, i) => {
+      if (c !== '.') (byColor[c] ||= []).push(i);
+    });
+    for (const c in byColor) {
+      ctx.fillStyle = lit(COLORS[c], 0.6);
+      for (const i of byColor[c]) {
+        const x = (i % GRID_W) - GX, y = Math.floor(i / GRID_W) - GY;
+        ctx.fillRect(ox + (flip ? -x - 1 : x), ground + y - hop, 1, 1);
+      }
     }
-    if (cat.state === 'rest' || cat.state === 'alert') {
-      drawTail(x + 1, top + 8, 1, Math.PI, 0.17, 0.9, t);
-      sprite(LYING, x, top, false, cat.blink > 0 ? BLINK : null);
-      if (cat.state === 'alert') sprite(BANG, x + 19, top - 7);
-      return;
-    }
-
-    const flip = cat.dir < 0;
-    const bob = cat.moving && cat.state === 'chase' ? Math.floor(cat.step) % 2 : 0;
-    const hop = cat.hop > 0 ? Math.round(Math.sin(Math.PI * (cat.hop / 0.45)) * 7) : 0;
-    const y = top - bob - hop;
-    drawTail(flip ? x + 20 : x + 1, y + 5, flip ? -1 : 1, Math.PI + 1, 0.1, 0.5, t);
-    drawLegs(x, y, flip, cat.moving ? Math.floor(cat.step) % 4 : -1);
-    sprite(WALK, x, y, flip, cat.blink > 0 ? WALK_BLINK : null);
+    ctx.restore();
+    if (cat.state === 'alert') sprite(BANG, Math.round(cat.x) + 18, baseY - 19);
   }
 
   // A patch of flattened grass where she naps, so she stands out from the flowers
@@ -843,6 +938,9 @@
   // ----- One frame -----
   function render(t, dt, snap = false) {
     updateLight(dt, snap);
+    // The scene is drawn at its own pixel size; the cat (drawCat) uses the finer one
+    ctx.setTransform(FINE, 0, 0, FINE, 0, 0);
+    ctx.imageSmoothingEnabled = false;
     const w = wind(t);
     ctx.drawImage(skyLayer, 0, 0);
     drawSkyLights(t);
@@ -870,8 +968,10 @@
     PX = clamp(Math.round(box.height / 220), 2, 6);
     W = Math.ceil(box.width / PX);
     H = Math.ceil(box.height / PX);
-    canvas.width = skyLayer.width = landLayer.width = W;
-    canvas.height = landLayer.height = H;
+    skyLayer.width = landLayer.width = W;
+    canvas.width = W * FINE;
+    landLayer.height = H;
+    canvas.height = H * FINE;
     canvas.style.width = W * PX + 'px';
     canvas.style.height = H * PX + 'px';
     horizon = Math.round(H * 0.6);
