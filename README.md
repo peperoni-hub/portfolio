@@ -10,6 +10,8 @@ Built with plain HTML, CSS and JavaScript, in a soft yellow theme.
 
 ## Sections
 
+- **Sunflower field**: a full-screen pixel-art scene drawn on a canvas. A calico cat naps next to her warm milk while the sunflowers sway in the wind. By day she chases butterflies; at night she sleeps under the fireflies.
+- **Live sky and clock**: the scene follows the real sun over Tuzla and shows the local time. Visitors can switch it to Day, Dusk or Night, and after sunset the whole page turns dark.
 - **About**: a short intro about me
 - **Projects**: an arrow slider of project cards that show a screenshot, with the description sliding up on hover or tap
 - **Contact**: email and GitHub links
@@ -21,6 +23,10 @@ Built with plain HTML, CSS and JavaScript, in a soft yellow theme.
 - **Invoicer**: an invoice manager that tracks paid, unpaid and overdue invoices (preview only)
 - **Calculator**: a simple calculator for the browser ([GitHub](https://github.com/peperoni-hub/practice-calculator))
 - **Lift Together**: a workout tracker for two (preview only)
+
+## Secrets
+
+There's at least one hidden somewhere on the page. No spoilers here.
 
 ## How it was built
 
