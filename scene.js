@@ -364,6 +364,10 @@
       s.setProperty('--hero-mark', css(mix([255, 214, 92], [247, 221, 124], v), 0.35 + 0.65 * v));
       s.setProperty('--hero-shadow', `rgba(0, 0, 0, ${(0.35 * (1 - v)).toFixed(2)})`);
     }
+
+    // Once the sun is well down, the rest of the page goes dark too
+    const sky = alt < -3 ? 'night' : 'day';
+    if (document.documentElement.dataset.sky !== sky) document.documentElement.dataset.sky = sky;
   }
 
   // ----- Drawing the parts of the scene -----

@@ -8,9 +8,27 @@
   --yellow: #f7dd7c;
   --yellow-soft: #fcefbd;
   --honey: #a77a0c;
+  --on-yellow: #2d2920;
+  --mark: var(--yellow);
 
   --font-sans: "Geist", system-ui, sans-serif;
   --font-serif: "Instrument Serif", Georgia, serif;
+}
+
+/* After sunset in the scene, the page below becomes a firefly-lit field.
+   scene.js sets data-sky on <html>. */
+:root[data-sky="night"] {
+  --bg: #0f1712;
+  --surface: #16211a;
+  --ink: #e8ecd8;
+  --ink-muted: #a3b49d;
+  --line: #26372b;
+  --yellow: #ffd65c;
+  --yellow-soft: #26361f;
+  --honey: #ffd65c;
+  --on-yellow: #1a1a10;
+  --mark: rgba(255, 214, 92, 0.35);
+  color-scheme: dark;
 }
 
 *,
@@ -27,6 +45,7 @@ body {
   font-size: 1rem;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.8s ease, color 0.8s ease;
 }
 
 /* One calm, narrow column, like a page in a notebook */
@@ -39,6 +58,7 @@ main > section {
 
 ::selection {
   background: var(--yellow);
+  color: var(--on-yellow);
 }
 
 /* ---------- Hero ---------- */
@@ -67,7 +87,7 @@ main > section {
 
 .hero-text {
   position: relative;
-  padding-top: 17vh;
+  padding-top: clamp(4rem, 17vh, 10rem);
 }
 
 .dot {
@@ -223,7 +243,7 @@ main > section {
 mark {
   padding: 0 0.15em;
   color: var(--ink);
-  background: linear-gradient(transparent 55%, var(--yellow) 55%);
+  background: linear-gradient(transparent 55%, var(--mark) 55%);
 }
 
 /* ---------- Sections ---------- */
@@ -316,6 +336,7 @@ main > section {
 
 .slider-arrow:hover {
   background: var(--yellow);
+  color: var(--on-yellow);
   transform: scale(1.06);
 }
 
@@ -418,7 +439,7 @@ main > section {
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   background: var(--yellow);
-  color: var(--ink);
+  color: var(--on-yellow);
   font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
@@ -426,7 +447,7 @@ main > section {
 
 .project-links a:hover {
   background: var(--ink);
-  color: var(--yellow);
+  color: var(--bg);
 }
 
 @media (max-width: 860px) {
