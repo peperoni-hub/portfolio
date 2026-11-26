@@ -70,14 +70,17 @@
     farHill: '#a8cdb0', farHillTop: '#bcdcc0', nearHill: '#7fb565', nearHillTop: '#93c474',
     field1: '#86ba58', field2: '#68a33f', field3: '#4f8b31',
     speck: '#3f7527', speckLight: '#a3cf6c',
-    path: '#9bcf62', pathDark: '#86bd52', tuft: '#5f9a3a', clover: '#fff6e6', clover2: '#ffb6c8',
   };
   const FLOWER = {
     y: '#ffd43b', Y: '#f4a91c', b: '#7b4a1f', B: '#4d2b10', stem: '#4c8a2c', leaf: '#69a93b',
   };
   const COLORS = {
-    k: '#2a211d', w: '#f8f2e7', s: '#d6cab9', o: '#e58b3a', O: '#b5652a', b: '#3b3230',
-    p: '#ee9aa2', g: '#8fc34a', c: '#f5d06a', C: '#dea53c', m: '#fff4dc', a: '#ff8fb1', A: '#ffc6d6',
+    k: '#2b1d17', w: '#f7ecdc', s: '#e3cfb6', o: '#e08238', O: '#b35e26', b: '#7d5a48', B: '#5e4235',
+    p: '#f2a3a3', g: '#8fc34a', m: '#fff4dc', M: '#f1dfbd', a: '#ff8fb1',
+    // Pink cat-face bowl
+    r: '#c9627a', q: '#f6a5b8', Q: '#ffd0dc', x: '#fffaf4',
+    // Butterfly with pale, see-through fairy wings
+    e: '#5f86bd', i: '#dcefff', v: '#3d3550',
   };
 
   const light = { alt: 0, toDusk: 0, toDay: 0, night: 0, day: 0, tint: [1, 1, 1] };
@@ -123,12 +126,41 @@
     '.kwwwwwwwwwwwwwwwwk...',
     '..kkkkkkkkkkkkkkkk....',
   ];
+  // Asleep she curls up into a ball, head tucked in, tail wrapped round the front
+  const CURLED = [
+    '........................',
+    '........................',
+    '........................',
+    '...............k....k...',
+    '.....kkkkkkkkkkpkk.kpk..',
+    '...kkoobbbbwwwwwkkkkpk..',
+    '..koooobbbbwwwwkobobk...',
+    '.koooooowwwwwwkbobobok..',
+    '.koooooowwwwwwkooookok..',
+    'koooooowwwwwwwkokkkwwwk.',
+    'koooowwwwwwwwwkowwwwpwk.',
+    '.kOOsssssssssskowwwwwk..',
+    '.kOBBBBBBBBBBBBkwwwwwk..',
+    '..kkobbOOoobbOOoskwkk...',
+    '....kkbOOoobbOOoskk.....',
+    '......kkkkkkkkkkk.......',
+  ];
   const BLINK = { '17,4': 'k', '21,4': 'k' };
-  const ASLEEP = { '17,4': 'k', '18,4': 'k', '20,4': 'k', '21,4': 'k' };
   const WALK_BLINK = { '19,3': 'k' };
-  const MUG = ['kkkkkk..', 'kmmmmkkk', 'kcCcck.k', 'kcCcckkk', '.kkkk...'];
-  const WINGS_OPEN = ['aa.aa', 'aAkAa', '.a.a.'];
-  const WINGS_SHUT = ['.a.a.', '.aka.', '.....'];
+  // Her bowl of warm milk: pink on top, a white cat face underneath
+  const BOWL = [
+    '.rrrrrrrrrrr.',
+    'rQmmmmmmmmmQr',
+    'rqMmmmmmmmMqr',
+    'rqqxqqqqqxqqr',
+    '.rxxxqqqxxxr.',
+    '.rxxrxxxrxxr.',
+    '..rqxxrxxqr..',
+    '...rrrrrrr...',
+  ];
+  const LITTLE_HEART = ['a.a', 'aaa', '.a.'];
+  const WINGS_OPEN = ['ee...ee', 'eieveie', 'eiiviie', '.eivie.', '..e.e..'];
+  const WINGS_SHUT = ['.e...e.', '.eivie.', '..eve..', '...v...', '.......'];
   const BANG = ['k', 'k', 'k', '.', 'k'];
   const ZED = ['wwwww', '...w.', '..w..', '.w...', 'wwwww'];
   const HEART = ['aa.aa', 'aaaaa', '.aaa.', '..a..'];
@@ -146,7 +178,7 @@
   ];
   const STRIDE = [[-1, 1], [0, 0], [1, -1], [0, 0]];
 
-  function sprite(rows, x, y, flip = false, swap = null, lift = 0.5) {
+  function sprite(rows, x, y, flip = false, swap = null, lift = 0.6) {
     const w = rows[0].length;
     for (let j = 0; j < rows.length; j++) {
       for (let i = 0; i < w; i++) {
@@ -159,11 +191,9 @@
   }
 
   // ----- The world: sizes, layout and cached layers -----
-  let W = 0, H = 0, PX = 4, horizon = 0, pathTop = 0, baseY = 0;
-  // The cat, her cup and the butterfly are drawn S times bigger on wide
-  // screens, so they live in their own coordinates: CW wide, ground at CB.
-  let S = 2, CW = 0, CB = 0, homeX = 0;
-  let stars = [], clouds = [], rows = [], specks = [], tufts = [], fireflies = [], pollen = [];
+  // baseY is the ground line the cat lies on, partway down the field
+  let W = 0, H = 0, PX = 4, horizon = 0, baseY = 0, homeX = 0, frontRow = 0;
+  let stars = [], clouds = [], rows = [], specks = [], fireflies = [], pollen = [];
   let farHills = [], nearHills = [];
   const skyLayer = document.createElement('canvas');
   const landLayer = document.createElement('canvas');
@@ -184,20 +214,16 @@
     nearHills = Array.from({ length: W }, (_, x) =>
       Math.round(horizon - 3 - 3 * Math.sin(x * 0.033 + b) - 1.5 * Math.sin(x * 0.11 + a)));
 
-    specks = Array.from({ length: Math.round(W * (pathTop - horizon) / 14) }, () => ({
-      x: Math.floor(r() * W), y: horizon + Math.floor(r() * (pathTop - horizon)), light: r() < 0.3,
+    specks = Array.from({ length: Math.round(W * (H - horizon) / 14) }, () => ({
+      x: Math.floor(r() * W), y: horizon + Math.floor(r() * (H - horizon)), light: r() < 0.3,
     }));
-    tufts = [];
-    for (let x = 0; x < W; x++) {
-      if (r() < 0.45) tufts.push({ x, h: 1 + Math.floor(r() * 3) });
-      if (r() < 0.04) tufts.push({ x, y: pathTop + 3 + Math.floor(r() * (H - pathTop - 4)), clover: r() < 0.5 ? 1 : 2 });
-    }
 
-    // Sunflowers in rows, small and dense at the back, big at the front
+    // Sunflowers in rows, small and dense at the back, big at the front.
+    // The front rows start below the screen so their heads fill the bottom.
     rows = [];
-    for (let y = horizon + 2; y < pathTop; ) {
-      const d = (y - horizon) / (pathTop - horizon);
-      const gap = 4 + d * 11;
+    for (let y = horizon + 2; y < H + 24; ) {
+      const d = (y - horizon) / (H - horizon);
+      const gap = 4 + Math.min(d, 1) * 9;
       const row = [];
       for (let x = r() * gap; x < W + 4; x += gap * (0.75 + r() * 0.5)) {
         row.push({
@@ -210,17 +236,20 @@
       rows.push(row);
       y += Math.max(1, Math.round(1 + d * 3.5));
     }
+    // Rows from here on are in front of the cat
+    frontRow = rows.findIndex((row) => row[0].y > baseY);
+    if (frontRow < 0) frontRow = rows.length;
 
     // Fireflies: a little cloud of them around the cat, the rest over the field and sky
     fireflies = Array.from({ length: 30 }, (_, i) => {
       const near = i < 11;
       return {
-        x: near ? (homeX + 14) * S + (r() - 0.5) * 60 : r() * W,
-        y: near ? baseY - 6 - r() * 22 * S : horizon - 45 + r() * (pathTop - horizon + 35),
+        x: near ? (homeX + 14) + (r() - 0.5) * 60 : r() * W,
+        y: near ? baseY - 6 - r() * 22 : horizon - 45 + r() * (H - horizon + 30),
         ax: 3 + r() * 7, ay: 2 + r() * 4, s1: 0.2 + r() * 0.45, s2: 0.6 + r() * 1.3, p: r() * 6.28,
       };
     });
-    pollen = Array.from({ length: 16 }, () => ({ x: r() * W, y: horizon - 30 + r() * (pathTop - horizon + 20), s: 0.5 + r(), p: r() * 6.28 }));
+    pollen = Array.from({ length: 16 }, () => ({ x: r() * W, y: horizon - 30 + r() * (H - horizon + 10), s: 0.5 + r(), p: r() * 6.28 }));
   }
 
   // A cloud is a row of round puffs on a flat bottom, tallest in the middle
@@ -300,8 +329,8 @@
       for (let y = nearHills[x]; y < horizon; y++) put(x, y, y === nearHills[x] ? L.nearHillTop : L.nearHill);
     }
     const bands = [L.field1, L.field2, L.field3];
-    for (let y = horizon; y < pathTop; y++) {
-      const v = ((y - horizon) / (pathTop - horizon)) * 2;
+    for (let y = horizon; y < H; y++) {
+      const v = ((y - horizon) / (H - horizon)) * 2;
       for (let x = 0; x < W; x++) {
         const band = Math.floor(v);
         put(x, y, bands[Math.min(2, band + (v - band > bayer(x, y) ? 1 : 0))]);
@@ -311,13 +340,6 @@
     // The farthest sunflowers are just yellow dots, baked into the field
     const farYellow = tint(FLOWER.y);
     for (const row of rows) for (const f of row) if (f.size === 0) put(f.x, f.y - 1, farYellow);
-    for (let y = pathTop; y < H; y++) {
-      for (let x = 0; x < W; x++) put(x, y, y - pathTop < 2 && bayer(x, y) < 0.5 ? L.pathDark : L.path);
-    }
-    for (const t of tufts) {
-      if (t.clover) put(t.x, t.y, t.clover === 1 ? L.clover : L.clover2);
-      else for (let j = 1; j <= t.h; j++) put(t.x, pathTop - j + 1, L.tuft);
-    }
     lctx.putImageData(land, 0, 0);
 
     // Sunflower heads, one small canvas per size
@@ -422,20 +444,38 @@
     }
   }
 
-  function drawFlowers(t, w) {
+  // Draws flower rows [from, to). Flowers in front of the cat and her cup
+  // bend aside and dip down, like a little nest, so she stays in view.
+  function drawFlowers(t, w, from, to) {
     const sway = 0.25 + w * 0.75;
     const droop = Math.round(light.night * 1.2);
     const stem = lit(FLOWER.stem), leaf = lit(FLOWER.leaf);
-    for (const row of rows) {
+    const nests = [[cat.x - 3, cat.x + 27], [homeX + 23, homeX + 39]];
+    const catMiddle = cat.x + 12;
+    for (let r = from; r < to; r++) {
+      const row = rows[r];
       if (row[0].size === 0) continue;
-      ctx.fillStyle = stem;
       for (const f of row) {
         const amp = 0.4 + f.d * 2.6;
         // The sine travels across the field, so the wind looks like waves
         f.top = (Math.sin(t * 1.8 - f.x * 0.13 + f.p * 0.3) * sway + w * 0.7) * amp;
+        f.len = f.h;
+        if (f.y > baseY) {
+          const gap = Math.min(...nests.map(([a, b]) => (f.x < a ? a - f.x : f.x > b ? f.x - b : 0)));
+          const push = 1 - smooth(0, 9, gap);
+          if (push > 0) {
+            const half = (HEADS[f.size].length - 1) / 2;
+            const low = Math.max(1, f.y - baseY - half - 1);
+            f.len = Math.round(f.h + (Math.min(f.h, low) - f.h) * push);
+            f.top += Math.sign(f.x - catMiddle) * push * 2.5;
+          }
+        }
+      }
+      ctx.fillStyle = stem;
+      for (const f of row) {
         let from = 0, cur = 0;
-        for (let j = 1; j <= f.h; j++) {
-          const dx = j < f.h ? Math.round(f.top * (j / f.h) ** 2) : null;
+        for (let j = 1; j <= f.len; j++) {
+          const dx = j < f.len ? Math.round(f.top * (j / f.len) ** 2) : null;
           if (dx !== cur) {
             ctx.fillRect(f.x + cur, f.y - j + 1, 1, j - from);
             from = j;
@@ -445,15 +485,15 @@
       }
       ctx.fillStyle = leaf;
       for (const f of row) {
-        if (f.size < 2) continue;
-        const j = Math.round(f.h * 0.45);
-        const lx = f.x + Math.round(f.top * (j / f.h) ** 2);
+        if (f.size < 2 || f.len < 6) continue;
+        const j = Math.round(f.len * 0.45);
+        const lx = f.x + Math.round(f.top * (j / f.len) ** 2);
         ctx.fillRect(f.leaf > 0 ? lx + 1 : lx - 2, f.y - j, 2, 1);
         ctx.fillRect(f.leaf > 0 ? lx + 2 : lx - 2, f.y - j - 1, 1, 1);
       }
       for (const f of row) {
         const half = (HEADS[f.size].length - 1) / 2;
-        ctx.drawImage(headLayers[f.size], f.x + Math.round(f.top) - half, f.y - f.h - half + droop);
+        ctx.drawImage(headLayers[f.size], f.x + Math.round(f.top) - half, f.y - f.len - half + droop);
       }
     }
   }
@@ -474,7 +514,7 @@
     const gather = party > 0 ? smooth(0, 1.5, Math.min(PARTY - party, party)) : 0;
     const shown = Math.max(light.night, gather);
     if (shown < 0.02) return;
-    const hx = (cat.x + 12) * S, hy = (CB - 26) * S;
+    const hx = (cat.x + 12), hy = (baseY - 26);
     fireflies.forEach((f, i) => {
       let x = f.x + Math.sin(t * f.s1 + f.p) * f.ax;
       let y = f.y + Math.cos(t * f.s1 * 1.3 + f.p) * f.ay;
@@ -483,8 +523,8 @@
         const a = (i / fireflies.length) * Math.PI * 2;
         const px = 16 * Math.sin(a) ** 3;
         const py = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
-        x += (hx + px * 0.85 * S - x) * gather;
-        y += (hy + py * 0.85 * S - y) * gather;
+        x += (hx + px * 1.1 - x) * gather;
+        y += (hy + py * 1.1 - y) * gather;
         glow += (0.8 + 0.2 * Math.sin(t * 3 + i) - glow) * gather;
       }
       x = Math.round(x);
@@ -507,8 +547,8 @@
   // The firefly beside the cat that blinks MEOW in Morse code
   function drawMessenger(t) {
     if (light.night < 0.3 || party > 0) return;
-    const x = Math.round((homeX + 30) * S + Math.sin(t * 0.5) * 4);
-    const y = Math.round((CB - 22) * S + Math.cos(t * 0.7) * 3);
+    const x = Math.round((homeX + 30) + Math.sin(t * 0.5) * 4);
+    const y = Math.round((baseY - 22) + Math.cos(t * 0.7) * 3);
     const a = light.night;
     if (!morseOn(t)) {
       ctx.fillStyle = `rgba(255, 236, 150, ${0.15 * a})`;
@@ -583,12 +623,14 @@
           setCat('return');
           break;
         }
-        // Run until her nose is just behind the butterfly, then pounce
-        const ahead = fly.x > cat.x + 11;
-        const target = clamp(ahead ? fly.x - 25 : fly.x + 3, 1, CW - 23);
-        moveCat(target, 34, dt, 15);
-        if (!cat.moving) cat.dir = ahead ? 1 : -1;
-        if (Math.abs(target - cat.x) < 5 && fly.y > CB - 30 && cat.cool <= 0 && cat.hop <= 0) {
+        // Always face the butterfly (turning round if it flies over her back),
+        // run forwards until her nose is just behind it, then pounce
+        const offset = fly.x - (cat.x + 11);
+        if (Math.abs(offset) > 3) cat.dir = Math.sign(offset);
+        const target = clamp(cat.dir > 0 ? fly.x - 24 : fly.x + 2, 1, W - 23);
+        if ((target - cat.x) * cat.dir > 0) moveCat(target, 34, dt, 15);
+        const gap = cat.dir > 0 ? fly.x - (cat.x + 21) : cat.x - fly.x;
+        if (gap > -3 && gap < 8 && fly.y > baseY - 30 && cat.cool <= 0 && cat.hop <= 0) {
           cat.hop = 0.45;
           cat.cool = 1.8;
         }
@@ -605,7 +647,7 @@
     if (cat.state === 'sleep') {
       zedTimer -= dt;
       if (zedTimer <= 0) {
-        zeds.push({ x: cat.x + 21, y: CB - 15, t: 0 });
+        zeds.push({ x: cat.x + 19, y: baseY - 15, t: 0 });
         zedTimer = 1.8;
       }
     }
@@ -616,7 +658,7 @@
     if (cat.happy > 0) {
       heartTimer -= dt;
       if (heartTimer <= 0) {
-        hearts.push({ x: cat.x + 17 + Math.random() * 4, y: CB - 15, t: 0 });
+        hearts.push({ x: cat.x + 17 + Math.random() * 4, y: baseY - 15, t: 0 });
         heartTimer = 0.7;
       }
     }
@@ -630,21 +672,21 @@
         nextVisit -= dt;
         if (nextVisit <= 0) {
           const fromLeft = Math.random() < 0.5;
-          fly = { x: fromLeft ? -4 : CW + 4, y: CB - 34, tx: 0, ty: 0, t: 0, timer: 0, phase: 'arrive' };
+          fly = { x: fromLeft ? -4 : W + 4, y: baseY - 34, tx: 0, ty: 0, t: 0, timer: 0, phase: 'arrive' };
         }
       }
       return;
     }
 
     fly.t += dt;
-    const headX = cat.x + 19, headY = CB - 17;
+    const headX = cat.x + 19, headY = baseY - 17;
     const near = (r) => Math.hypot(fly.tx - fly.x, fly.ty - fly.y) < r;
     const wander = () => {
       let x;
-      do x = 6 + Math.random() * (CW - 14);
-      while (Math.abs(x - (cat.x + 11)) < 30 && CW > 90);
+      do x = 6 + Math.random() * (W - 14);
+      while (Math.abs(x - (cat.x + 11)) < 30 && W > 90);
       fly.tx = x;
-      fly.ty = CB - 16 - Math.random() * 16;
+      fly.ty = baseY - 16 - Math.random() * 16;
     };
     const leave = () => {
       fly.phase = 'leave';
@@ -682,7 +724,7 @@
       return;
     }
 
-    const speed = { arrive: 16, tease: 14, flee: 27, leave: 24 }[fly.phase];
+    const speed = { arrive: 26, tease: 14, flee: 27, leave: 24 }[fly.phase];
     const dx = fly.tx - fly.x, dy = fly.ty - fly.y;
     const dist = Math.hypot(dx, dy) || 1;
     const stepLen = Math.min(dist, speed * dt);
@@ -723,15 +765,17 @@
 
   function drawCat(t) {
     const x = Math.round(cat.x);
-    const top = CB - 11;
+    const top = baseY - 11;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
-    ctx.fillRect(x + 2, CB + 1, 20, 1);
+    ctx.fillRect(x + 2, baseY + 1, 20, 1);
 
-    if (cat.state === 'rest' || cat.state === 'alert' || cat.state === 'sleep') {
-      const asleep = cat.state === 'sleep';
-      if (!asleep) drawTail(x + 1, top + 8, 1, Math.PI, 0.17, 0.9, t);
-      sprite(LYING, x, top, false, asleep ? ASLEEP : cat.blink > 0 ? BLINK : null);
-      if (asleep) drawTail(x + 2, top + 9, 1, 1.25, -0.13, 0.25, t * 0.5, 13);
+    if (cat.state === 'sleep') {
+      sprite(CURLED, x, baseY - 15);
+      return;
+    }
+    if (cat.state === 'rest' || cat.state === 'alert') {
+      drawTail(x + 1, top + 8, 1, Math.PI, 0.17, 0.9, t);
+      sprite(LYING, x, top, false, cat.blink > 0 ? BLINK : null);
       if (cat.state === 'alert') sprite(BANG, x + 19, top - 7);
       return;
     }
@@ -745,24 +789,39 @@
     sprite(WALK, x, y, flip, cat.blink > 0 ? WALK_BLINK : null);
   }
 
-  function drawMug(t) {
-    const mx = homeX + 25, my = CB - 4;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
-    ctx.fillRect(mx, CB + 1, 7, 1);
-    sprite(MUG, mx, my);
-    // Steam from the warm milk
-    for (let k = 0; k < 3; k++) {
-      const rise = (t * 5 + k * 2.4) % 7;
-      const sx = mx + 1 + k + Math.round(Math.sin(t * 2 + k + rise * 0.7));
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.6 * (1 - rise / 7)})`;
-      ctx.fillRect(sx, Math.round(my - 1 - rise), 1, 1);
+  // A patch of flattened grass where she naps, so she stands out from the flowers
+  function drawNest() {
+    const cx = homeX + 16, rx = 21, ry = 3.5;
+    ctx.fillStyle = lit('#8cc257');
+    for (let y = -4; y <= 4; y++) {
+      for (let x = -rx - 2; x <= rx + 2; x++) {
+        const d = (x / rx) ** 2 + (y / ry) ** 2;
+        if (d < 1 - bayer(cx + x, baseY + y) * 0.45) ctx.fillRect(cx + x, baseY + y, 1, 1);
+      }
     }
+  }
+
+  function drawBowl(t) {
+    const bx = homeX + 25, by = baseY - 7;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+    ctx.fillRect(bx + 3, baseY + 1, 7, 1);
+    sprite(BOWL, bx, by);
+    // A wisp of steam from the warm milk, and a little heart bobbing above
+    for (let k = 0; k < 2; k++) {
+      const rise = (t * 4 + k * 3.5) % 7;
+      const sx = bx + 4 + k * 4 + Math.round(Math.sin(t * 2 + k + rise * 0.7));
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.55 * (1 - rise / 7)})`;
+      ctx.fillRect(sx, Math.round(by - 1 - rise), 1, 1);
+    }
+    sprite(LITTLE_HEART, bx + 5, by - 6 + Math.round(Math.sin(t * 1.6)), false, null, 0.8);
   }
 
   function drawFlyAndFloaters() {
     if (fly) {
       const open = Math.sin(fly.t * 22) > 0;
-      sprite(open ? WINGS_OPEN : WINGS_SHUT, Math.round(fly.x) - 2, Math.round(fly.y) - 1, false, null, 0.6);
+      ctx.globalAlpha = 0.9; // the wings are a little see-through
+      sprite(open ? WINGS_OPEN : WINGS_SHUT, Math.round(fly.x) - 3, Math.round(fly.y) - 2, false, null, 0.7);
+      ctx.globalAlpha = 1;
     }
     for (const z of zeds) {
       ctx.globalAlpha = Math.min(1, (2.6 - z.t) / 1.2) * 0.9;
@@ -777,7 +836,7 @@
     // The dots and dashes a visitor taps, floating up above the cat
     for (const m of marks) {
       ctx.fillStyle = `rgba(255, 246, 214, ${1 - m.t / 1.6})`;
-      ctx.fillRect(Math.round(m.x), Math.round(CB - 19 - m.t * 6), m.sym === '.' ? 1 : 3, 1);
+      ctx.fillRect(Math.round(m.x), Math.round(baseY - 19 - m.t * 6), m.sym === '.' ? 1 : 3, 1);
     }
   }
 
@@ -789,16 +848,16 @@
     drawSkyLights(t);
     drawClouds(dt, w);
     ctx.drawImage(landLayer, 0, 0);
-    drawFlowers(t, w);
-    drawPollen(t, dt, w);
     updateCat(dt);
     updateFly(dt);
-    ctx.save();
-    ctx.scale(S, S);
-    drawMug(t);
+    // The cat and her cup sit between the flowers behind and in front of her
+    drawFlowers(t, w, 0, frontRow);
+    drawNest();
+    drawBowl(t);
     drawCat(t);
+    drawFlowers(t, w, frontRow, rows.length);
+    drawPollen(t, dt, w);
     drawFlyAndFloaters();
-    ctx.restore();
     party = Math.max(0, party - dt);
     drawFireflies(t);
     drawMessenger(t);
@@ -817,13 +876,12 @@
     canvas.style.height = H * PX + 'px';
     horizon = Math.round(H * 0.6);
     skyLayer.height = horizon;
-    pathTop = H - 16;
-    baseY = H - 5;
-    S = W >= 200 ? 2 : 1;
-    CW = Math.floor(W / S);
-    CB = Math.floor(baseY / S);
-    homeX = Math.round(CW / 2 - 16);
-    cat.x = cat.state === 'rest' || cat.state === 'sleep' || cat.state === 'alert' ? homeX : clamp(cat.x, 1, CW - 23);
+    baseY = Math.round(horizon + (H - horizon) * 0.68);
+    homeX = Math.round(W / 2 - 16);
+    cat.x = cat.state === 'rest' || cat.state === 'sleep' || cat.state === 'alert' ? homeX : clamp(cat.x, 1, W - 23);
+    zeds = [];
+    hearts = [];
+    marks = [];
     build();
     paintedAt = null;
     render(clock, 0);
@@ -940,9 +998,9 @@
 
   function overCat(event) {
     const box = canvas.getBoundingClientRect();
-    const x = (event.clientX - box.left) / PX / S;
-    const y = (event.clientY - box.top) / PX / S;
-    return x > cat.x - 3 && x < cat.x + 27 && y > CB - 16 && y < CB + 3;
+    const x = (event.clientX - box.left) / PX;
+    const y = (event.clientY - box.top) / PX;
+    return x > cat.x - 3 && x < cat.x + 27 && y > baseY - 16 && y < baseY + 3;
   }
 
   function answer(signal) {
