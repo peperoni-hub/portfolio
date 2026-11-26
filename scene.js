@@ -131,6 +131,7 @@
   const WINGS_SHUT = ['.a.a.', '.aka.', '.....'];
   const BANG = ['k', 'k', 'k', '.', 'k'];
   const ZED = ['wwwww', '...w.', '..w..', '.w...', 'wwwww'];
+  const HEART = ['aa.aa', 'aaaaa', '.aaa.', '..a..'];
   const HEADS = {
     1: ['.y.', 'yby', '.y.'],
     2: ['.yYy.', 'yybyy', 'YbBbY', 'yybyy', '.yYy.'],
@@ -468,30 +469,72 @@
   }
 
   function drawFireflies(t) {
-    if (light.night < 0.02) return;
-    for (const f of fireflies) {
-      const x = Math.round(f.x + Math.sin(t * f.s1 + f.p) * f.ax);
-      const y = Math.round(f.y + Math.cos(t * f.s1 * 1.3 + f.p) * f.ay);
-      const glow = Math.max(0, Math.sin(t * f.s2 + f.p * 2));
-      const a = light.night * (0.2 + 0.8 * glow * glow);
-      ctx.fillStyle = `rgba(255, 244, 160, ${a})`;
+    // When the Morse secret is solved, the fireflies gather into a heart
+    // above the cat (even in daylight), then drift back home
+    const gather = party > 0 ? smooth(0, 1.5, Math.min(PARTY - party, party)) : 0;
+    const shown = Math.max(light.night, gather);
+    if (shown < 0.02) return;
+    const hx = (cat.x + 12) * S, hy = (CB - 26) * S;
+    fireflies.forEach((f, i) => {
+      let x = f.x + Math.sin(t * f.s1 + f.p) * f.ax;
+      let y = f.y + Math.cos(t * f.s1 * 1.3 + f.p) * f.ay;
+      let glow = Math.max(0, Math.sin(t * f.s2 + f.p * 2));
+      if (gather > 0) {
+        const a = (i / fireflies.length) * Math.PI * 2;
+        const px = 16 * Math.sin(a) ** 3;
+        const py = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+        x += (hx + px * 0.85 * S - x) * gather;
+        y += (hy + py * 0.85 * S - y) * gather;
+        glow += (0.8 + 0.2 * Math.sin(t * 3 + i) - glow) * gather;
+      }
+      x = Math.round(x);
+      y = Math.round(y);
+      const a = shown * (0.2 + 0.8 * glow * glow);
+      // Yellow glow at night; pink in daylight, so the heart shows on the sunflowers
+      const pink = light.day * gather;
+      ctx.fillStyle = css(mix([255, 244, 160], [255, 96, 150], pink), a);
       ctx.fillRect(x, y, 1, 1);
       if (glow > 0.6) {
-        ctx.fillStyle = `rgba(214, 242, 107, ${a * 0.45})`;
+        ctx.fillStyle = css(mix([214, 242, 107], [255, 170, 200], pink), a * (0.45 + 0.4 * pink));
         ctx.fillRect(x - 1, y, 1, 1);
         ctx.fillRect(x + 1, y, 1, 1);
         ctx.fillRect(x, y - 1, 1, 1);
         ctx.fillRect(x, y + 1, 1, 1);
       }
+    });
+  }
+
+  // The firefly beside the cat that blinks MEOW in Morse code
+  function drawMessenger(t) {
+    if (light.night < 0.3 || party > 0) return;
+    const x = Math.round((homeX + 30) * S + Math.sin(t * 0.5) * 4);
+    const y = Math.round((CB - 22) * S + Math.cos(t * 0.7) * 3);
+    const a = light.night;
+    if (!morseOn(t)) {
+      ctx.fillStyle = `rgba(255, 236, 150, ${0.15 * a})`;
+      ctx.fillRect(x, y, 1, 1);
+      return;
     }
+    ctx.fillStyle = `rgba(255, 214, 92, ${0.35 * a})`;
+    ctx.fillRect(x - 2, y - 1, 5, 3);
+    ctx.fillRect(x - 1, y - 2, 3, 5);
+    ctx.fillStyle = `rgba(255, 250, 200, ${a})`;
+    ctx.fillRect(x - 1, y, 3, 1);
+    ctx.fillRect(x, y - 1, 1, 3);
   }
 
   // ----- The cat, her milk and the butterfly -----
-  const cat = { x: 0, dir: 1, state: 'rest', t: 0, step: 0, hop: 0, cool: 0, blink: 0, nextBlink: 2, moving: false };
+  const cat = { x: 0, dir: 1, state: 'rest', t: 0, step: 0, hop: 0, cool: 0, blink: 0, nextBlink: 2, moving: false, happy: 0 };
   let fly = null;
   let nextVisit = 7;
   let zeds = [];
   let zedTimer = 0;
+  let hearts = [];
+  let heartTimer = 0;
+  // Morse code secret state (see the secret section further down)
+  const PARTY = 9;
+  let party = 0;
+  let marks = [];
 
   function setCat(state) {
     cat.state = state;
@@ -526,10 +569,10 @@
     const sleepy = light.night > 0.55;
     switch (cat.state) {
       case 'rest':
-        if (sleepy) setCat('sleep');
+        if (sleepy && cat.happy <= 0) setCat('sleep');
         break;
       case 'sleep':
-        if (light.night < 0.4) setCat('rest');
+        if (light.night < 0.4 || cat.happy > 0) setCat('rest');
         break;
       case 'stand':
         if (fly) cat.dir = Math.sign(fly.x - (cat.x + 11)) || cat.dir;
@@ -567,6 +610,18 @@
       }
     }
     zeds = zeds.filter((z) => (z.t += dt) < 2.6);
+
+    // A happy cat (secret solved) sends little hearts up
+    cat.happy = Math.max(0, cat.happy - dt);
+    if (cat.happy > 0) {
+      heartTimer -= dt;
+      if (heartTimer <= 0) {
+        hearts.push({ x: cat.x + 17 + Math.random() * 4, y: CB - 15, t: 0 });
+        heartTimer = 0.7;
+      }
+    }
+    hearts = hearts.filter((h) => (h.t += dt) < 2.2);
+    marks = marks.filter((m) => (m.t += dt) < 1.6);
   }
 
   function updateFly(dt) {
@@ -704,7 +759,7 @@
     }
   }
 
-  function drawFlyAndZeds() {
+  function drawFlyAndFloaters() {
     if (fly) {
       const open = Math.sin(fly.t * 22) > 0;
       sprite(open ? WINGS_OPEN : WINGS_SHUT, Math.round(fly.x) - 2, Math.round(fly.y) - 1, false, null, 0.6);
@@ -713,6 +768,16 @@
       ctx.globalAlpha = Math.min(1, (2.6 - z.t) / 1.2) * 0.9;
       sprite(ZED, Math.round(z.x + z.t * 2 + Math.sin(z.t * 3)), Math.round(z.y - z.t * 5), false, null, 0.7);
       ctx.globalAlpha = 1;
+    }
+    for (const h of hearts) {
+      ctx.globalAlpha = Math.min(1, (2.2 - h.t) / 0.8);
+      sprite(HEART, Math.round(h.x + Math.sin(h.t * 4) * 1.5), Math.round(h.y - h.t * 7), false, null, 0.8);
+      ctx.globalAlpha = 1;
+    }
+    // The dots and dashes a visitor taps, floating up above the cat
+    for (const m of marks) {
+      ctx.fillStyle = `rgba(255, 246, 214, ${1 - m.t / 1.6})`;
+      ctx.fillRect(Math.round(m.x), Math.round(CB - 19 - m.t * 6), m.sym === '.' ? 1 : 3, 1);
     }
   }
 
@@ -732,9 +797,11 @@
     ctx.scale(S, S);
     drawMug(t);
     drawCat(t);
-    drawFlyAndZeds();
+    drawFlyAndFloaters();
     ctx.restore();
+    party = Math.max(0, party - dt);
     drawFireflies(t);
+    drawMessenger(t);
   }
 
   // ----- Size, start and stop -----
@@ -839,6 +906,92 @@
       }
     });
   }
+
+  // ----- Morse code secret -----
+  // At night the firefly beside the cat blinks MEOW in Morse code. Answer
+  // her in Morse (tap the cat: a quick tap is a dot, a longer press is a
+  // dash, or type . and -) and every firefly gathers into a heart.
+  const MORSE = { M: '--', E: '.', O: '---', W: '.--' };
+  const SECRET_WORD = 'MEOW';
+  const ANSWER = [...SECRET_WORD].map((letter) => MORSE[letter]).join('');
+  const UNIT = 0.3; // seconds in one Morse "dot"
+  // The blink pattern as [light on?, length in units]: 1 for a dot, 3 for a
+  // dash, 1 between signals, 3 between letters, a long rest before repeating
+  const BLINKS = [];
+  [...SECRET_WORD].forEach((letter, li) => {
+    [...MORSE[letter]].forEach((signal, si, all) => {
+      BLINKS.push([true, signal === '.' ? 1 : 3]);
+      BLINKS.push([false, si < all.length - 1 ? 1 : li < SECRET_WORD.length - 1 ? 3 : 10]);
+    });
+  });
+  const BLINK_UNITS = BLINKS.reduce((sum, [, length]) => sum + length, 0);
+
+  function morseOn(t) {
+    let u = (t / UNIT) % BLINK_UNITS;
+    for (const [on, length] of BLINKS) {
+      if (u < length) return on;
+      u -= length;
+    }
+    return false;
+  }
+
+  const toast = hero.querySelector('.secret-toast');
+  let taps = '', lastTap = 0, pressedAt = 0;
+
+  function overCat(event) {
+    const box = canvas.getBoundingClientRect();
+    const x = (event.clientX - box.left) / PX / S;
+    const y = (event.clientY - box.top) / PX / S;
+    return x > cat.x - 3 && x < cat.x + 27 && y > CB - 16 && y < CB + 3;
+  }
+
+  function answer(signal) {
+    const now = performance.now();
+    if (now - lastTap > 2500) taps = '';
+    lastTap = now;
+    taps = (taps + signal).slice(-ANSWER.length);
+    marks.push({ sym: signal, x: cat.x + 2 + (taps.length - 1) * 2.5, t: 0 });
+    if (taps === ANSWER) celebrate();
+    if (reduceMotion) render(clock, 0);
+  }
+
+  function celebrate() {
+    taps = '';
+    party = PARTY;
+    cat.happy = PARTY;
+    if (!toast) return;
+    toast.textContent = 'You speak firefly. She says meow back ♥';
+    toast.classList.add('is-shown');
+    setTimeout(() => toast.classList.remove('is-shown'), 6000);
+  }
+
+  hero.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('a, button') || !overCat(event)) return;
+    pressedAt = performance.now();
+  });
+  hero.addEventListener('pointerup', () => {
+    if (!pressedAt) return;
+    answer(performance.now() - pressedAt < 220 ? '.' : '-');
+    pressedAt = 0;
+  });
+  hero.addEventListener('pointercancel', () => {
+    pressedAt = 0;
+  });
+  hero.addEventListener('pointermove', (event) => {
+    hero.style.cursor = !event.target.closest('a, button') && overCat(event) ? 'pointer' : '';
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.target instanceof Element && event.target.closest('input, textarea, [contenteditable]')) return;
+    if (event.key === '.' || event.key === '-') answer(event.key);
+  });
+
+  // The only clue, for anyone curious enough to open the browser console
+  console.log('%c✦ Psst. The fireflies are talking.', 'font: italic 16px Georgia, serif; color: #e5a50a;');
+  console.log(
+    '%cWatch the one beside the cat at night. She answers to taps.\n.-.. .. ... - . -.',
+    'font: 12px monospace; color: #8a7a4a;'
+  );
 
   updateLight(0, true);
   if (light.night > 0.55) cat.state = 'sleep';
