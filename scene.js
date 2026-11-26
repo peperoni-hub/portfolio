@@ -76,7 +76,7 @@
   };
   const COLORS = {
     k: '#2b1d17', w: '#f7ecdc', s: '#e3cfb6', o: '#e08238', O: '#b35e26', b: '#7d5a48', B: '#5e4235',
-    p: '#f2a3a3', g: '#8fc34a', m: '#fff4dc', M: '#f1dfbd', a: '#ff8fb1',
+    p: '#f2a3a3', g: '#2f5c9e', m: '#fff4dc', M: '#f1dfbd', a: '#ff8fb1',
     // Pink cat-face bowl
     r: '#c9627a', q: '#f6a5b8', Q: '#ffd0dc', x: '#fffaf4',
     // Butterfly with pale, see-through fairy wings
